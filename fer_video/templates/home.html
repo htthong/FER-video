@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Library</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        .carousel-item {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .carousel-item video {
+            width: 12%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .carousel-item .video-title {
+            width: 12%;
+            text-align: center;
+            font-size: 16px;
+        }
+        .main-video {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4 text-primary">Video Library</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <h2 class="text-secondary">Upload New Video</h2>
+                <form action="{% url 'upload_video' %}" method="get" class="bg-light p-4 rounded">
+                    <button type="submit" class="btn btn-primary">Upload Video</button>
+                </form>
+                <form action="{% url 'analyze_video' %}" method="post" class="bg-light p-4 rounded">
+                    {% csrf_token %}
+                    <input type="hidden" name="video_url" id="video_url" value="{% if latest_video %}{{ latest_video.video_file.url }}{% else %}{% static 'videos/sample_video.mp4' %}{% endif %}">
+                    <button type="submit" class="btn btn-secondary">Phân Tích</button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h2 class="text-secondary">Use Sample Video</h2>
+                <video id="main-video" class="main-video mb-2" controls>
+                    {% if latest_video %}
+                        <source src="{{ latest_video.video_file.url }}" type="video/mp4">
+                    {% else %}
+                        <source src="{% static 'videos/sample_video.mp4' %}" type="video/mp4">
+                    {% endif %}
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h2 class="text-secondary">Sample Videos</h2>
+                <div id="sampleVideosCarousel" class="carousel slide" data-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for i in video_files %}
+                            {% if forloop.counter0|divisibleby:7 %}
+                                <div class="carousel-item {% if forloop.counter0 == 0 %}active{% endif %}">
+                            {% endif %}
+                            <video class="sample-video" controls title="{{ i }}">
+                                <source src="{% static 'videos/' %}{{ i }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            
+                            {% if forloop.counter|divisibleby:7 or forloop.last %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        document.querySelectorAll('.sample-video').forEach(video => {
+            video.addEventListener('click', function() {
+                const mainVideo = document.getElementById('main-video');
+                const videoSource = this.querySelector('source').getAttribute('src');
+                mainVideo.querySelector('source').setAttribute('src', videoSource);
+                mainVideo.load();
+
+                const analyzeVideo = document.getElementById('video_url');
+                analyzeVideo.setAttribute('value', videoSource)
+            });
+        });
+    </script>
+</body>
+</html>

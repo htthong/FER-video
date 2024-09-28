@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Analyze Video</title>
+    {% load static %}
+    {% load crispy_forms_tags %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .image-row {
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 20px;
+        }
+        .image-row img {
+            margin-right: 10px;
+        }
+        .red-title {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4 text-primary">Analyze Video</h1>
+    </div>
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Video Column -->
+            <div class="col-sm-4">
+                <h2 class="text-secondary">Use Sample Video</h2>
+                <video id="main-video" class="main-video mb-2" style="width: 100%;" controls title="{{ video_url }}">
+                    <source src="{{ video_url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <!-- Output Column --> 
+            <div class="col-sm-4">
+                <h2 class="text-secondary">Output</h2>
+                <div id="output-container" class="output-container bg-light p-4 rounded" style="width: 35%;">
+                    <h5 id="output-info">{{ prediction_label_2 }}</h5>
+                </div>
+                <div id="output-container" class="output-container">
+                    <canvas id="pred-chart"></canvas>
+                </div>
+                <button id="toggle-stage" class="btn btn-primary mt-3">Toggle Stage</button>
+                <p id="stage-info" class="mt-2">Currently showing: Stage 2</p>
+            </div>
+
+            <!-- Attn Column --> 
+            <div class="col-sm-4">
+                <h2 class="text-secondary">Attention Weight</h2>
+                <div id="output-container" class="output-container">
+                    <canvas id="pred-chart-attn" height="200%"></canvas>
+                </div>
+                <!-- <div id="output-container" class="output-container">
+                    <canvas id="pred-chart-attn-2"></canvas>
+                </div> -->
+            </div>
+        </div>
+    </div>
+    
+    {% for image_row in images %}
+        <div class="image-row" style="width: 100%;">
+            {% for image in image_row %}
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h5 >{{ image.title }}</h5>
+                    <img src="data:image/png;base64,{{ image.base64 }}" alt="Tensor Image">
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('pred-chart').getContext('2d');
+            const stage1Data = JSON.parse('{{ stage1_dt|safe }}');
+            const stage2Data = JSON.parse('{{ stage2_dt|safe }}');
+            console.log(stage1Data)
+
+            let currentStage = 2;
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ["Happy", "Sad", "Neutral", "Angry", "Surprise", "Disgust", "Fear"],
+                    datasets: [{
+                        label: 'Predictions',
+                        data: stage2Data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            
+
+            const stageInfo = document.getElementById('stage-info');
+            const predInfo = document.getElementById('output-info');
+            document.getElementById('toggle-stage').addEventListener('click', function () {
+                currentStage = currentStage === 1 ? 2 : 1;
+                chart.data.datasets[0].data = currentStage === 1 ? stage1Data : stage2Data;
+                chart.update();
+                stageInfo.textContent = `Currently showing: Stage ${currentStage}`;
+                predInfo.textContent = currentStage === 1 ? '{{prediction_label_1}}' : '{{prediction_label_2}}';
+                console.log(currentStage)
+                console.log(predInfo.textContent)
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('pred-chart-attn').getContext('2d');
+            const attnData = JSON.parse('{{ attn|safe }}');
+            const attnData2 = JSON.parse('{{ attn2|safe }}');
+            console.log(attnData)
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+                    datasets: [{
+                        label: 'Stage 1',
+                        data: attnData,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    },
+                    // {
+                    //     label: 'Stage 2',
+                    //     data: attnData2,
+                    //     backgroundColor: 'rgba(239, 90, 109, 0.8)',
+                    //     borderColor: 'rgba(247, 59, 83, 0.8)',
+                    //     borderWidth: 1
+                    // }
+                ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+
+        // document.addEventListener('DOMContentLoaded', function () {
+        //     const ctx = document.getElementById('pred-chart-attn-2').getContext('2d');
+        //     const attnData = JSON.parse('{{ attn2|safe }}');
+        //     console.log(attnData)
+        //     const chart = new Chart(ctx, {
+        //         type: 'bar',
+        //         data: {
+        //             labels: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+        //             datasets: [{
+        //                 label: 'Stage 2',
+        //                 data: attnData,
+        //                 backgroundColor: 'rgba(239, 90, 109, 0.8)',
+        //                 borderColor: 'rgba(247, 59, 83, 0.8)',
+        //                 borderWidth: 1
+        //             }]
+        //         },
+        //         options: {
+        //             scales: {
+        //                 y: {
+        //                     beginAtZero: true
+        //                 }
+        //             }
+        //         }
+        //     });
+        // });
+    </script>
+</body>
+</html>
